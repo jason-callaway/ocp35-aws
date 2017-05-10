@@ -229,6 +229,7 @@
     overwrite: yes
     wait: yes
   with_indexed_items: "{{ ec2_ocpmaster_instances }}"
+  register: r53_masters
 
 - name: Create Route 53 entries for OCP nodes
   route53:
@@ -241,6 +242,9 @@
     overwrite: yes
     wait: yes
   with_indexed_items: "{{ ec2_ocpnode_instances }}"
+  register: r53_nodes
+
+- debug: var=r53_nodes
 
 - name: Wait for SSH to come up on public instances
   wait_for: host={{ item.public_dns_name }} port=22 delay=0 timeout=600 state=started
