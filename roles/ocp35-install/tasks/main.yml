@@ -1,0 +1,127 @@
+---
+# tasks file for private-aws
+- name: get rid of RHUI repo files if present
+  file:
+    path: "{{ item }}"
+    state: absent
+  with_items:
+    - "/etc/yum.repos.d/redhat.repo"
+    - "/etc/yum.repos.d/redhat-rhui.repo"
+    - "/etc/yum.repos.d/redhat-rhui-client-config.repo"
+    - "/etc/yum.repos.d/rhui-load-balancers.conf"
+
+- name: Register with RHN
+  redhat_subscription:
+    state: present
+    username: "{{ rhn_username }}"
+    password: "{{ rhn_password }}"
+    autosubscribe: false
+  ignore_errors: yes
+
+# This is dumb, but since the autosubscribe argument isn't working on the
+# above task, we have to ignore errors since the command is not idempotent.
+# TODO: open a bug
+- name: Unsub everything
+  command: "subscription-manager unsubscribe --all"
+  ignore_errors: yes
+- name: Subscribe to pool
+  command: "subscription-manager subscribe --pool {{ rhn_pool }}"
+  ignore_errors: no
+
+# Currently no support for repo manipulation in redhat_subscription module
+- name: Disable all repos
+  command: subscription-manager repos --disable="*"
+
+- name: Enable OpenShift repos
+  command: subscription-manager repos --enable="{{ item }}"
+  with_items: "{{ repo_names }}"
+
+- name: install ssh private key
+  copy:
+#    src: "./secrets/{{ cluster_id }}"
+    src: "./secrets/deploy"
+    dest: "/root/.ssh/id_rsa"
+    owner: root
+    mode: 0600
+  when: node_type == "master"
+
+#- set_fact: my_keyname="./secrets/{{ cluster_id }}.pub"
+- set_fact: my_keyname="./secrets/deploy.pub"
+
+- name: install public ssh key
+  authorized_key:
+    user: "{{ ec2_username }}"
+    key: "{{ lookup('file', my_keyname) }}"
+    manage_dir: yes
+    state: present
+
+- name: install prerequisites
+  yum:
+    name: {{ item }}
+    state: present
+  with_items: {{ required_rpms }}
+
+- name: yum update
+  yum: name="*" state=latest
+
+- name: install docker
+  yum: name=docker state=present
+
+- name: enable insecure registries
+  lineinfile:
+    dest: /etc/sysconfig/docker
+    regexp: "^# INSECURE_REGISTRY"
+    line: "INSECURE_REGISTRY='--insecure-registry 0.0.0.0/0'"
+    state: present
+
+- name: set up docker storage
+  template:
+    src: docker-storage-setup.j2
+    dest: /etc/sysconfig/docker-storage-setup
+    owner: root
+    mode: 0644
+  # when: node_type == 'node' or node_type == 'master'
+
+#- debug: var=ansible_hostname
+#- debug: var=node_type
+
+- name: execute docker-storage-setup
+  command: docker-storage-setup
+  # when: node_type == 'node' or node_type == 'master'
+
+# - name: install openshift utils
+#   yum:
+#     name: atomic-openshift-utils
+#     state: present
+#     disablerepo: epel
+  # when: node_type == 'master'
+- name: unexclude packages
+  shell: atomic-openshift-excluder unexclude
+
+##- debug: var=groups
+#- debug: var=ansible_hostname
+#- debug: var=groups.masters[0]
+#- debug: var=
+
+# - name: copy ansible.cfg
+#   copy:
+#     src: ansible.cfg
+#     dest: /root/ansible.cfg
+#     owner: root
+#     mode: 0600
+#
+# - name: generate OpenShift Ansible hosts
+#   template:
+#     src: openshift_private_hosts.j2
+#     dest: /root/hosts
+#     owner: root
+#     mode: 0644
+#   when: ansible_hostname.replace('ip-','').replace('-','.') == groups.masters[0]
+#
+# - name: execute the OpenShift ansible install
+#   command: ansible-playbook -i /root/hosts /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml
+#   args:
+#     chdir: /root
+#   async: 3600
+#   poll: 60
+#   when: ansible_hostname.replace('ip-','').replace('-','.') == groups.masters[0]

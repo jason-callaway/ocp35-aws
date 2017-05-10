@@ -25,6 +25,15 @@
   tags:
     - infrastructure_deploy
 
+- hosts: localhost
+  connection: local
+  gather_facts: no
+  become: false
+  roles:
+    - ocp35-install
+  tags:
+    - ocp_deployment
+
 - hosts: tag_instance_role_gluster_node
   connection: ssh
   gather_facts: yes

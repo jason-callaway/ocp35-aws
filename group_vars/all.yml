@@ -1,6 +1,7 @@
 ---
 cluster_id: ocp35_aws
 r53_zone: rhtps.io
+r53_subdomain: ocp35.rhtps.io
 ec2_keypair: "{{ lookup('env','ec2_keypair') }}"
 rhn_username: "{{ lookup('env','rhn_username') }}"
 rhn_password: "{{ lookup('env','rhn_password') }}"
@@ -34,3 +35,15 @@ repo_names:
   - rhel-7-server-extras-rpms
   - rhel-7-server-ose-3.5-rpms
   - rhel-7-fast-datapath-rpms
+
+required_rpms:
+  - wget
+  - git
+  - net-tools
+  - bind-utils
+  - iptables-services
+  - bridge-utils
+  - bash-completion
+  - atomic-openshift-utils
+  - atomic-openshift-excluder
+  - atomic-openshift-docker-excluder

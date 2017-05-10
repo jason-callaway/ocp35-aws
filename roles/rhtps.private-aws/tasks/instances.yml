@@ -218,6 +218,30 @@
 #    - "{{ ec2_public_instances }}"
 #    - "{{ ec2_private_instances }}"
 
+- name: Create Route 53 entries for OCP masters
+  route53:
+    command: create
+    zone: "{{ r53_zone }}"
+    record: "master{{ loop.index }}.{{ r53_subdomain }}.{{ r53_zone }}"
+    type: A
+    ttl: 300
+    value: "{{ item[loop.index].public_ip }}"
+    overwrite: yes
+    wait: yes
+  with_indexed_items: "{{ ec2_ocpmaster_instances }}"
+
+- name: Create Route 53 entries for OCP nodes
+  route53:
+    command: create
+    zone: "{{ r53_zone }}"
+    record: "node{{ loop.index }}.{{ r53_subdomain }}.{{ r53_zone }}"
+    type: A
+    ttl: 300
+    value: "{{ item[loop.index].public_ip }}"
+    overwrite: yes
+    wait: yes
+  with_indexed_items: "{{ ec2_ocpnode_instances }}"
+
 - name: Wait for SSH to come up on public instances
   wait_for: host={{ item.public_dns_name }} port=22 delay=0 timeout=600 state=started
   with_items:
