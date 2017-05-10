@@ -1,5 +1,5 @@
 ---
-cluster_id: gluster_perf
+cluster_id: ocp35_aws
 r53_zone: rhtps.io
 ec2_keypair: "{{ lookup('env','ec2_keypair') }}"
 rhn_username: "{{ lookup('env','rhn_username') }}"
@@ -28,3 +28,9 @@ dispersed_redundancy: 2
 dispersed_data: "{{ gluster_num_hosts - dispersed_redundancy }}"
 #volume_type: dispersed
 volume_name: perfvol
+
+repo_names:
+  - rhel-7-server-rpms
+  - rhel-7-server-extras-rpms
+  - rhel-7-server-ose-3.5-rpms
+  - rhel-7-fast-datapath-rpms
