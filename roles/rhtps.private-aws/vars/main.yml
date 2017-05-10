@@ -10,11 +10,39 @@ ec2_username: ec2-user
 
 create_vpcs: True
 
+docker_vol: /dev/xvdb
+
 public_cidr_b: 10.0.0.0/16
 public_cidr_c_sidea: 10.0.1.0/24
 public_cidr_c_sideb: 10.0.2.0/24
 
-node_manifest:
+ocp_manifest:
+  masters:
+    role: openshift_master
+    type: "{{ ec2_instance_type }}"
+    count: 1
+    side: a
+    rootvol:
+      size: 10
+      type: gp2
+    volumes:
+      - name: /dev/xvdb
+        type: gp2
+        size: 100
+  nodes:
+    role: openshift_node
+    type: "{{ ec2_instance_type }}"
+    count: 3
+    side: a
+    rootvol:
+      size: 10
+      type: gp2
+    volumes:
+      - name: /dev/xvdb
+        type: gp2
+        size: 100
+
+gluster_node_manifest:
   sidea_nodes:
     role: gluster_node
     type: "{{ ec2_instance_type }}"
@@ -26,28 +54,28 @@ node_manifest:
     volumes:
       - name: /dev/xvdb
         type: gp2
-        size: "{{ gluster_dev_size}}"
+        size: "{{ gluster_dev_size }}"
       - name: /dev/xvdc
         type: gp2
-        size: "{{ gluster_dev_size}}"
+        size: "{{ gluster_dev_size }}"
       - name: /dev/xvdd
         type: gp2
-        size: "{{ gluster_dev_size}}"
+        size: "{{ gluster_dev_size }}"
       - name: /dev/xvde
         type: gp2
-        size: "{{ gluster_dev_size}}"
+        size: "{{ gluster_dev_size }}"
       - name: /dev/xvdf
         type: gp2
-        size: "{{ gluster_dev_size}}"
+        size: "{{ gluster_dev_size }}"
       - name: /dev/xvdg
         type: gp2
-        size: "{{ gluster_dev_size}}"
+        size: "{{ gluster_dev_size }}"
       - name: /dev/xvdh
         type: gp2
-        size: "{{ gluster_dev_size}}"
+        size: "{{ gluster_dev_size }}"
       - name: /dev/xvdi
         type: gp2
-        size: "{{ gluster_dev_size}}"
+        size: "{{ gluster_dev_size }}"
 
   sideb_nodes:
     role: gluster_node
@@ -83,7 +111,7 @@ node_manifest:
         type: gp2
         size: "{{ gluster_dev_size}}"
 
-client_manifest:
+gluster_client_manifest:
   clients:
     role: gluster_client
     type: "{{ ec2_instance_type }}"
@@ -128,4 +156,3 @@ sg_udp_ports:
     to: 111
   - from: 963
     to: 963
-

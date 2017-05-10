@@ -31,6 +31,52 @@
         cidr_ip: 0.0.0.0/0
   register: public_security_group
 
+- name: Create ec2 public OCP master instances
+  include: instances/create_instance.yml
+  vars:
+    my_type: "{{ item['type'] }}"
+    my_group_id: "{{ public_security_group.group_id }}"
+    my_Name: "{{ cluster_id }}-{{ item['role'] }}-instance"
+    my_instance_role: "{{ item['role'] }}"
+    my_env: "{{ cluster_id }}"
+    my_side: "sidea"
+    my_vpc_subnet_id: "{{ public_subnet_id_sidea }}"
+    my_items: "{{ ocp_manifest['masters'] }}"
+
+- set_fact:
+    ec2_instances:  "{{ ec2.instances }}"
+  when: ec2.instances is defined and ec2.instances
+
+- set_fact:
+    ec2_instances: "{{ ec2.tagged_instances }}"
+  when: ec2.tagged_instances is defined and ec2tagged_instances
+
+- set_fact:
+    ec2_ocpmaster_instances: "{{ ec2_instances }}"
+
+- name: Create ec2 public OCP node instances
+  include: instances/create_instance.yml
+  vars:
+    my_type: "{{ item['type'] }}"
+    my_group_id: "{{ public_security_group.group_id }}"
+    my_Name: "{{ cluster_id }}-{{ item['role'] }}-instance"
+    my_instance_role: "{{ item['role'] }}"
+    my_env: "{{ cluster_id }}"
+    my_side: "sidea"
+    my_vpc_subnet_id: "{{ public_subnet_id_sidea }}"
+    my_items: "{{ ocp_manifest['nodes'] }}"
+
+- set_fact:
+    ec2_instances:  "{{ ec2.instances }}"
+  when: ec2.instances is defined and ec2.instances
+
+- set_fact:
+    ec2_instances: "{{ ec2.tagged_instances }}"
+  when: ec2.tagged_instances is defined and ec2tagged_instances
+
+- set_fact:
+    ec2_ocpnode_instances: "{{ ec2_instances }}"
+
 - name: Create ec2 public client instances
   include: instances/create_instance.yml
   vars:
@@ -75,6 +121,30 @@
 
 - set_fact:
     ec2_sideb_instances: "{{ ec2_instances }}"
+
+- name: Add volumes to ocp master instances
+  ec2_vol:
+    region: "{{ ec2_region }}"
+    instance: "{{ item[0].id }}"
+    volume_size: "{{ item[1]['size'] }}"
+    volume_type: "{{ item[1]['type'] }}"
+    device_name: "{{ item[1]['name'] }}"
+    delete_on_termination: yes
+  with_nested:
+    - "{{ ec2_ocpmaster_instances }}"
+    - "{{ ocp_manifest['masters']['volumes'] }}"
+
+- name: Add volumes to ocp node instances
+  ec2_vol:
+    region: "{{ ec2_region }}"
+    instance: "{{ item[0].id }}"
+    volume_size: "{{ item[1]['size'] }}"
+    volume_type: "{{ item[1]['type'] }}"
+    device_name: "{{ item[1]['name'] }}"
+    delete_on_termination: yes
+  with_nested:
+    - "{{ ec2_ocpmaster_instances }}"
+    - "{{ ocp_manifest['nodes']['volumes'] }}"
 
 - name: Add volumes to sidea instances
   ec2_vol:
