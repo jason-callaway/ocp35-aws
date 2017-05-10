@@ -1,2 +1,3 @@
 # ocp35-aws
-Example OCP 3.5 deployment for AWS
+
+Example deployment of OpenShift Container Platform 3.5 in AWS
